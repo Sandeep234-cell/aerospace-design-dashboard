@@ -6,16 +6,15 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 import os
 
-st.set_page_config(page_title="Aerospace Design Dashboard", layout="wide")
+st.set_page_config(page_title="Aerospace Dashboard", layout="wide")
 
-# ---------------- TABS ----------------
 tab1, tab2, tab3 = st.tabs(["Aircraft Design", "Performance", "Reports"])
 
-# =========================================================
-# TAB 1 - DESIGN
-# =========================================================
+# =====================================================
+# TAB 1 - INPUT + AIRFOIL
+# =====================================================
 with tab1:
-    st.title("✈️ Aircraft Design Dashboard")
+    st.title("✈️ Aircraft Design")
 
     aircraft_name = st.text_input("Aircraft Name", "My Aircraft")
 
@@ -25,49 +24,36 @@ with tab1:
     )
 
     mach = st.number_input("Mach", value=0.3)
-    rho = st.number_input("Density (kg/m³)", value=1.225)
+    rho = st.number_input("Density", value=1.225)
     span = st.number_input("Wing Span", value=10.0)
     area = st.number_input("Wing Area", value=12.0)
     alpha = st.number_input("AoA (deg)", value=5.0)
 
-    def compute():
-        velocity = mach * 343
-        AR = span**2 / area
+    velocity = mach * 343
+    AR = span**2 / area
 
-        CL = 0.1 * alpha
-        CD = 0.02 + (CL**2) / (np.pi * AR * 0.8)
+    CL = 0.1 * alpha
+    CD = 0.02 + (CL**2)/(np.pi * AR * 0.8)
 
-        q = 0.5 * rho * velocity**2
-
-        lift = q * area * CL
-        drag = q * area * CD
-
-        LD = lift / drag
-
-        return AR, CL, CD, lift, drag, LD
-
-    AR, CL, CD, lift, drag, LD = compute()
+    q = 0.5 * rho * velocity**2
+    lift = q * area * CL
+    drag = q * area * CD
+    LD = lift / drag
 
     st.subheader("Results")
-    st.write(f"Aspect Ratio: {AR:.2f}")
-    st.write(f"CL: {CL:.3f}")
-    st.write(f"CD: {CD:.4f}")
-    st.write(f"Lift: {lift:.1f} N")
-    st.write(f"Drag: {drag:.1f} N")
-    st.write(f"L/D: {LD:.2f}")
+    st.write(f"CL: {CL:.3f}, CD: {CD:.4f}, L/D: {LD:.2f}")
 
-    # ---------------- AIRFOIL ----------------
-    def plot_airfoil(name):
-        if "2412" in name:
-            m, p, t = 0.02, 0.4, 0.12
-        elif "4412" in name:
-            m, p, t = 0.04, 0.4, 0.12
-        elif "23012" in name:
-            m, p, t = 0.02, 0.3, 0.12
-        else:
-            m, p, t = 0.0, 0.0, 0.12
-
+    def airfoil_plot():
         x = np.linspace(0, 1, 200)
+
+        if "0012" in airfoil:
+            m, p, t = 0.0, 0.0, 0.12
+        elif "2412" in airfoil:
+            m, p, t = 0.02, 0.4, 0.12
+        elif "4412" in airfoil:
+            m, p, t = 0.04, 0.4, 0.12
+        else:
+            m, p, t = 0.02, 0.3, 0.12
 
         yt = 5 * t * (
             0.2969*np.sqrt(x)
@@ -77,104 +63,100 @@ with tab1:
             -0.1015*x**4
         )
 
-        # SAFE CAMBER FIX
-        if p == 0 or m == 0:
+        if p == 0:
             yc = np.zeros_like(x)
-            dyc_dx = np.zeros_like(x)
+            dyc = np.zeros_like(x)
         else:
             yc = np.where(
                 x < p,
-                m/(p**2) * (2*p*x - x**2),
-                m/((1-p)**2) * ((1 - 2*p) + 2*p*x - x**2)
+                m/(p**2)*(2*p*x - x**2),
+                m/((1-p)**2)*((1-2*p)+2*p*x-x**2)
             )
-
-            dyc_dx = np.where(
+            dyc = np.where(
                 x < p,
-                2*m/(p**2) * (p - x),
-                2*m/((1-p)**2) * (p - x)
+                2*m/(p**2)*(p-x),
+                2*m/((1-p)**2)*(p-x)
             )
 
-        theta = np.arctan(dyc_dx)
+        theta = np.arctan(dyc)
 
         xu = x - yt*np.sin(theta)
         yu = yc + yt*np.cos(theta)
-
         xl = x + yt*np.sin(theta)
         yl = yc - yt*np.cos(theta)
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(7,4), dpi=150)
         ax.plot(xu, yu, label="Upper")
         ax.plot(xl, yl, label="Lower")
-        ax.plot(x, yc, "--", label="Camber")
-        ax.set_title(name)
-        ax.set_aspect("equal")
+        ax.plot(x, yc, "--")
+        ax.set_title("Airfoil Shape")
         ax.grid()
         ax.legend()
-
         return fig
 
-    st.pyplot(plot_airfoil(airfoil))
+    st.pyplot(airfoil_plot())
 
-# =========================================================
+# =====================================================
 # TAB 2 - PERFORMANCE
-# =========================================================
+# =====================================================
 with tab2:
-    st.title("📊 Performance Analysis")
+    st.title("📊 Performance")
 
     alpha_range = np.arange(-5, 16, 1)
 
     CL_arr = 0.1 * alpha_range
-    AR_fixed = 10**2 / 12
-    CD_arr = 0.02 + (CL_arr**2)/(np.pi*AR_fixed*0.8)
+    CD_arr = 0.02 + (CL_arr**2)/(np.pi*(AR)*0.8)
     LD_arr = CL_arr / CD_arr
     CM_arr = -0.05 * alpha_range
 
-    figs = []  # IMPORTANT
+    figs = []
 
-    fig1, ax1 = plt.subplots()
-    ax1.plot(alpha_range, CL_arr)
-    ax1.set_title("CL vs AoA")
-    ax1.grid()
-    st.pyplot(fig1)
-    figs.append(fig1)
+    def make_plot(y, title):
+        fig, ax = plt.subplots(figsize=(7,4), dpi=200)
+        ax.plot(alpha_range, y, linewidth=2)
+        ax.set_title(title)
+        ax.grid()
+        return fig
 
-    fig2, ax2 = plt.subplots()
-    ax2.plot(alpha_range, CD_arr)
-    ax2.set_title("CD vs AoA")
-    ax2.grid()
-    st.pyplot(fig2)
-    figs.append(fig2)
+    f1 = make_plot(CL_arr, "CL vs AoA")
+    st.pyplot(f1); figs.append(f1)
 
-    fig3, ax3 = plt.subplots()
-    ax3.plot(alpha_range, LD_arr)
-    ax3.set_title("L/D vs AoA")
-    ax3.grid()
-    st.pyplot(fig3)
-    figs.append(fig3)
+    f2 = make_plot(CD_arr, "CD vs AoA")
+    st.pyplot(f2); figs.append(f2)
 
-    fig4, ax4 = plt.subplots()
+    f3 = make_plot(LD_arr, "L/D vs AoA")
+    st.pyplot(f3); figs.append(f3)
+
+    f4, ax4 = plt.subplots(figsize=(7,4), dpi=200)
     ax4.plot(CD_arr, CL_arr, marker="o")
     ax4.set_title("Drag Polar")
-    ax4.set_xlabel("CD")
-    ax4.set_ylabel("CL")
     ax4.grid()
-    st.pyplot(fig4)
-    figs.append(fig4)
+    st.pyplot(f4); figs.append(f4)
 
-    fig5, ax5 = plt.subplots()
-    ax5.plot(alpha_range, CM_arr)
-    ax5.set_title("Cm vs AoA")
-    ax5.grid()
-    st.pyplot(fig5)
-    figs.append(fig5)
+    f5 = make_plot(CM_arr, "Cm vs AoA")
+    st.pyplot(f5); figs.append(f5)
 
-# =========================================================
-# TAB 3 - REPORTS
-# =========================================================
+# =====================================================
+# TAB 3 - REPORTS (KILLER EXPORT)
+# =====================================================
 with tab3:
-    st.title("📄 Reports")
+    st.title("📄 Engineering Report Export")
 
-    df = pd.DataFrame({
+    # INPUT DATA
+    input_df = pd.DataFrame([{
+        "Aircraft": aircraft_name,
+        "Mach": mach,
+        "Density": rho,
+        "Span": span,
+        "Area": area,
+        "AoA": alpha,
+        "CL": CL,
+        "CD": CD,
+        "L/D": LD
+    }])
+
+    # OUTPUT DATA
+    output_df = pd.DataFrame({
         "AoA": alpha_range,
         "CL": CL_arr,
         "CD": CD_arr,
@@ -182,50 +164,51 @@ with tab3:
         "Cm": CM_arr
     })
 
-    st.download_button(
-        "Download CSV",
-        df.to_csv(index=False).encode("utf-8"),
-        file_name="aero_data.csv",
-        mime="text/csv"
-    )
+    st.download_button("Download Input Data",
+                       input_df.to_csv(index=False).encode(),
+                       file_name="input_data.csv")
 
-    # ---------------- PDF ----------------
-    def create_pdf():
+    st.download_button("Download Output Data",
+                       output_df.to_csv(index=False).encode(),
+                       file_name="output_data.csv")
+
+    # ================= PDF =================
+    def make_pdf():
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer)
 
         pdf.setFont("Helvetica-Bold", 16)
-        pdf.drawString(50, 800, "Aerospace Design Report")
+        pdf.drawString(50, 800, "Aerospace Engineering Report")
 
-        pdf.setFont("Helvetica", 11)
-        pdf.drawString(50, 770, f"Aircraft: {aircraft_name}")
-        pdf.drawString(50, 750, f"Airfoil: {airfoil}")
-        pdf.drawString(50, 730, f"CL: {CL:.3f}")
-        pdf.drawString(50, 710, f"CD: {CD:.4f}")
-        pdf.drawString(50, 690, f"L/D: {LD:.2f}")
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(50, 780, f"Aircraft: {aircraft_name}")
+        pdf.drawString(50, 765, f"CL: {CL:.3f} CD: {CD:.4f} L/D: {LD:.2f}")
 
-        y = 650
+        pdf.showPage()
 
-        # SAVE ALL GRAPHS INTO PDF
+        y = 700
+
         for i, fig in enumerate(figs):
-            img = f"plot_{i}.png"
+            img = f"g{i}.png"
             fig.savefig(img, dpi=300, bbox_inches="tight")
-            pdf.drawImage(img, 50, y, width=500, height=140)
-            y -= 150
 
-            # cleanup
-            if os.path.exists(img):
-                os.remove(img)
+            pdf.drawImage(img, 40, y, width=520, height=200)
+            y -= 220
+
+            if y < 100:
+                pdf.showPage()
+                y = 700
+
+            os.remove(img)
 
         pdf.save()
         buffer.seek(0)
         return buffer
 
-    pdf_buffer = create_pdf()
+    pdf = make_pdf()
 
     st.download_button(
-        "Download PDF Report (All Graphs)",
-        pdf_buffer,
-        file_name="aerospace_report.pdf",
-        mime="application/pdf"
+        "Download FULL Engineering PDF (ALL graphs + data)",
+        pdf,
+        file_name="aero_report.pdf"
     )

@@ -4,17 +4,18 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from reportlab.pdfgen import canvas
 from io import BytesIO
+import os
 
 st.set_page_config(page_title="Aerospace Design Dashboard", layout="wide")
 
-# ---------------- TABS (LIKE YOUR TKINTER NOTEBOOK) ----------------
+# ---------------- TABS ----------------
 tab1, tab2, tab3 = st.tabs(["Aircraft Design", "Performance", "Reports"])
 
 # =========================================================
-# TAB 1 - AIRCRAFT DESIGN
+# TAB 1 - DESIGN
 # =========================================================
 with tab1:
-    st.title("✈️ Aircraft Design")
+    st.title("✈️ Aircraft Design Dashboard")
 
     aircraft_name = st.text_input("Aircraft Name", "My Aircraft")
 
@@ -29,7 +30,6 @@ with tab1:
     area = st.number_input("Wing Area", value=12.0)
     alpha = st.number_input("AoA (deg)", value=5.0)
 
-    # ---------------- SAFE AERO CALC ----------------
     def compute():
         velocity = mach * 343
         AR = span**2 / area
@@ -49,16 +49,14 @@ with tab1:
     AR, CL, CD, lift, drag, LD = compute()
 
     st.subheader("Results")
-    st.write(f"Aspect Ratio: **{AR:.2f}**")
-    st.write(f"CL: **{CL:.3f}**")
-    st.write(f"CD: **{CD:.4f}**")
-    st.write(f"Lift: **{lift:.1f} N**")
-    st.write(f"Drag: **{drag:.1f} N**")
-    st.write(f"L/D: **{LD:.2f}**")
+    st.write(f"Aspect Ratio: {AR:.2f}")
+    st.write(f"CL: {CL:.3f}")
+    st.write(f"CD: {CD:.4f}")
+    st.write(f"Lift: {lift:.1f} N")
+    st.write(f"Drag: {drag:.1f} N")
+    st.write(f"L/D: {LD:.2f}")
 
-    # ---------------- AIRFOIL PLOT ----------------
-    st.subheader("Airfoil Shape")
-
+    # ---------------- AIRFOIL ----------------
     def plot_airfoil(name):
         if "2412" in name:
             m, p, t = 0.02, 0.4, 0.12
@@ -79,7 +77,7 @@ with tab1:
             -0.1015*x**4
         )
 
-        # ---------------- SAFE CAMBER FIX ----------------
+        # SAFE CAMBER FIX
         if p == 0 or m == 0:
             yc = np.zeros_like(x)
             dyc_dx = np.zeros_like(x)
@@ -105,12 +103,12 @@ with tab1:
         yl = yc - yt*np.cos(theta)
 
         fig, ax = plt.subplots()
-        ax.plot(xu, yu, label="Upper Surface")
-        ax.plot(xl, yl, label="Lower Surface")
-        ax.plot(x, yc, "--", label="Camber Line")
+        ax.plot(xu, yu, label="Upper")
+        ax.plot(xl, yl, label="Lower")
+        ax.plot(x, yc, "--", label="Camber")
         ax.set_title(name)
         ax.set_aspect("equal")
-        ax.grid(True)
+        ax.grid()
         ax.legend()
 
         return fig
@@ -131,23 +129,28 @@ with tab2:
     LD_arr = CL_arr / CD_arr
     CM_arr = -0.05 * alpha_range
 
+    figs = []  # IMPORTANT
+
     fig1, ax1 = plt.subplots()
     ax1.plot(alpha_range, CL_arr)
     ax1.set_title("CL vs AoA")
     ax1.grid()
     st.pyplot(fig1)
+    figs.append(fig1)
 
     fig2, ax2 = plt.subplots()
     ax2.plot(alpha_range, CD_arr)
     ax2.set_title("CD vs AoA")
     ax2.grid()
     st.pyplot(fig2)
+    figs.append(fig2)
 
     fig3, ax3 = plt.subplots()
     ax3.plot(alpha_range, LD_arr)
     ax3.set_title("L/D vs AoA")
     ax3.grid()
     st.pyplot(fig3)
+    figs.append(fig3)
 
     fig4, ax4 = plt.subplots()
     ax4.plot(CD_arr, CL_arr, marker="o")
@@ -156,6 +159,14 @@ with tab2:
     ax4.set_ylabel("CL")
     ax4.grid()
     st.pyplot(fig4)
+    figs.append(fig4)
+
+    fig5, ax5 = plt.subplots()
+    ax5.plot(alpha_range, CM_arr)
+    ax5.set_title("Cm vs AoA")
+    ax5.grid()
+    st.pyplot(fig5)
+    figs.append(fig5)
 
 # =========================================================
 # TAB 3 - REPORTS
@@ -163,7 +174,6 @@ with tab2:
 with tab3:
     st.title("📄 Reports")
 
-    # CSV EXPORT
     df = pd.DataFrame({
         "AoA": alpha_range,
         "CL": CL_arr,
@@ -172,16 +182,14 @@ with tab3:
         "Cm": CM_arr
     })
 
-    csv = df.to_csv(index=False).encode("utf-8")
-
     st.download_button(
         "Download CSV",
-        csv,
+        df.to_csv(index=False).encode("utf-8"),
         file_name="aero_data.csv",
         mime="text/csv"
     )
 
-    # PDF REPORT
+    # ---------------- PDF ----------------
     def create_pdf():
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer)
@@ -196,6 +204,19 @@ with tab3:
         pdf.drawString(50, 710, f"CD: {CD:.4f}")
         pdf.drawString(50, 690, f"L/D: {LD:.2f}")
 
+        y = 650
+
+        # SAVE ALL GRAPHS INTO PDF
+        for i, fig in enumerate(figs):
+            img = f"plot_{i}.png"
+            fig.savefig(img, dpi=300, bbox_inches="tight")
+            pdf.drawImage(img, 50, y, width=500, height=140)
+            y -= 150
+
+            # cleanup
+            if os.path.exists(img):
+                os.remove(img)
+
         pdf.save()
         buffer.seek(0)
         return buffer
@@ -203,7 +224,7 @@ with tab3:
     pdf_buffer = create_pdf()
 
     st.download_button(
-        "Download PDF Report",
+        "Download PDF Report (All Graphs)",
         pdf_buffer,
         file_name="aerospace_report.pdf",
         mime="application/pdf"

@@ -6,7 +6,7 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 import os
 
-# ================= PAGE SETUP =================
+# ================= UI SETUP =================
 st.set_page_config(page_title="Aerospace Dashboard", layout="wide")
 
 st.markdown("""
@@ -170,6 +170,7 @@ with tab2:
 
     f4 = plot(CM_arr, "Cm vs AoA", "#ffaa00")
 
+    # LAST GRAPH FIXED (BLACK THEME)
     fig5, ax5 = plt.subplots(figsize=(4,3), dpi=150)
     fig5.patch.set_facecolor("#0e1117")
     ax5.set_facecolor("#0e1117")
@@ -183,7 +184,7 @@ with tab2:
     with c5: st.pyplot(fig5); figs.append(fig5)
 
 # =====================================================
-# TAB 3 - REPORTS (FIXED SINGLE PAGE PDF - NO CRASH)
+# TAB 3 - REPORTS (FULL FIXED ENGINEERING REPORT)
 # =====================================================
 with tab3:
     st.title("📄 Engineering Report")
@@ -198,7 +199,7 @@ with tab3:
         "AoA": alpha,
         "Velocity": velocity,
         "Chord": chord,
-        "Reynolds": Re,
+        "Reynolds Number": Re,
         "Dynamic Pressure": q
     }])
 
@@ -238,11 +239,11 @@ with tab3:
         pdf.drawString(50, 765, f"Airfoil: {airfoil}")
         pdf.drawString(50, 750, f"Velocity: {velocity:.2f} m/s")
         pdf.drawString(50, 735, f"Chord: {chord:.3f} m")
-        pdf.drawString(50, 720, f"Reynolds: {Re:.2e}")
+        pdf.drawString(50, 720, f"Reynolds Number: {Re:.2e}")
         pdf.drawString(50, 705, f"Dynamic Pressure: {q:.2f} Pa")
         pdf.drawString(50, 690, f"CL={CL:.3f} CD={CD:.4f} L/D={LD:.2f}")
 
-        # SAFE GRID (NO INDEX ERROR)
+        # SAFE GRAPH LAYOUT (NO CRASH)
         x_pos = [50, 300]
         y = 600
         col = 0

@@ -6,7 +6,7 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 import os
 
-# ================= THEME =================
+# ================= PAGE CONFIG =================
 st.set_page_config(page_title="Aerospace Dashboard", layout="wide")
 
 st.markdown("""
@@ -39,8 +39,8 @@ with tab1:
         area = st.number_input("Wing Area (m²)", value=12.0)
         alpha = st.number_input("AoA (deg)", value=5.0)
 
-    # ================= AERODYNAMICS =================
-    mu = 1.81e-5  # air viscosity
+    # ================= CALCULATIONS =================
+    mu = 1.81e-5
     chord = area / span
     velocity = mach * 343
 
@@ -128,7 +128,7 @@ Lift = {lift:.1f} N | Drag = {drag:.1f} N
     st.pyplot(airfoil_plot())
 
 # =====================================================
-# TAB 2 - PERFORMANCE
+# TAB 2 - PERFORMANCE (ALL BLACK + FIXED LAST GRAPH)
 # =====================================================
 with tab2:
     st.title("📊 Performance Dashboard")
@@ -144,6 +144,8 @@ with tab2:
 
     def plot(y, title, color):
         fig, ax = plt.subplots(figsize=(4,3), dpi=150)
+
+        # BLACK THEME FIXED
         fig.patch.set_facecolor("#0e1117")
         ax.set_facecolor("#0e1117")
 
@@ -169,7 +171,11 @@ with tab2:
 
     f4 = plot(CM_arr, "Cm vs AoA", "#ffaa00")
 
+    # ================= LAST GRAPH FIXED (BLACK) =================
     fig5, ax5 = plt.subplots(figsize=(4,3), dpi=150)
+    fig5.patch.set_facecolor("#0e1117")
+    ax5.set_facecolor("#0e1117")
+
     ax5.plot(CD_arr, CL_arr, color="cyan", marker="o", markersize=3)
     ax5.set_title("Drag Polar", color="white")
     ax5.grid(alpha=0.2)
@@ -179,7 +185,7 @@ with tab2:
     with c5: st.pyplot(fig5); figs.append(fig5)
 
 # =====================================================
-# TAB 3 - REPORTS (UPDATED ENGINEERING DATA)
+# TAB 3 - REPORTS (SINGLE PAGE PDF ONLY)
 # =====================================================
 with tab3:
     st.title("📄 Engineering Report")
@@ -194,7 +200,7 @@ with tab3:
         "AoA": alpha,
         "Velocity": velocity,
         "Chord": chord,
-        "Reynolds Number": Re,
+        "Reynolds": Re,
         "Dynamic Pressure": q
     }])
 
@@ -212,49 +218,42 @@ with tab3:
     st.subheader("Output Data")
     st.dataframe(output_df)
 
-    st.download_button(
-        "Download Input CSV",
-        input_df.to_csv(index=False).encode(),
-        file_name="input_data.csv"
-    )
+    st.download_button("Download Input CSV",
+                       input_df.to_csv(index=False).encode(),
+                       file_name="input.csv")
 
-    st.download_button(
-        "Download Output CSV",
-        output_df.to_csv(index=False).encode(),
-        file_name="output_data.csv"
-    )
+    st.download_button("Download Output CSV",
+                       output_df.to_csv(index=False).encode(),
+                       file_name="output.csv")
 
-    # ================= PDF =================
+    # ================= SINGLE PAGE PDF =================
     def make_pdf():
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer)
 
-        pdf.setFont("Helvetica-Bold", 16)
+        pdf.setFont("Helvetica-Bold", 14)
         pdf.drawString(50, 800, "Aerospace Engineering Report")
 
-        pdf.setFont("Helvetica", 10)
+        pdf.setFont("Helvetica", 9)
+
         pdf.drawString(50, 780, f"Aircraft: {aircraft_name}")
-        pdf.drawString(50, 760, f"Airfoil: {airfoil}")
-        pdf.drawString(50, 740, f"Velocity: {velocity:.2f} m/s")
-        pdf.drawString(50, 720, f"Chord: {chord:.3f} m")
-        pdf.drawString(50, 700, f"Reynolds Number: {Re:.2e}")
-        pdf.drawString(50, 680, f"Dynamic Pressure: {q:.2f} Pa")
-        pdf.drawString(50, 660, f"CL: {CL:.3f} CD: {CD:.4f} L/D: {LD:.2f}")
+        pdf.drawString(50, 765, f"Airfoil: {airfoil}")
+        pdf.drawString(50, 750, f"Velocity: {velocity:.2f} m/s")
+        pdf.drawString(50, 735, f"Chord: {chord:.3f} m")
+        pdf.drawString(50, 720, f"Reynolds Number: {Re:.2e}")
+        pdf.drawString(50, 705, f"Dynamic Pressure: {q:.2f} Pa")
+        pdf.drawString(50, 690, f"CL={CL:.3f} CD={CD:.4f} L/D={LD:.2f}")
 
-        pdf.showPage()
-
-        y = 700
+        # GRAPHS (SINGLE PAGE ONLY)
+        y_positions = [620, 460, 300, 140]
 
         for i, fig in enumerate(figs):
             img = f"g{i}.png"
-            fig.savefig(img, dpi=300, bbox_inches="tight")
+            fig.savefig(img, dpi=250, bbox_inches="tight")
 
-            pdf.drawImage(img, 40, y, width=520, height=200)
-            y -= 220
-
-            if y < 120:
-                pdf.showPage()
-                y = 700
+            pdf.drawImage(img, 50 if i % 2 == 0 else 300,
+                          y_positions[i],
+                          width=220, height=160)
 
             os.remove(img)
 
@@ -265,7 +264,7 @@ with tab3:
     pdf = make_pdf()
 
     st.download_button(
-        "Download Full Engineering Report",
+        "Download Full Engineering Report (Single Page)",
         pdf,
         file_name="aero_report.pdf"
     )

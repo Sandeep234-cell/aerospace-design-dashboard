@@ -6,43 +6,56 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 import os
 
+# ================= THEME =================
 st.set_page_config(page_title="Aerospace Dashboard", layout="wide")
+
+st.markdown("""
+<style>
+.main {
+    background-color: #0e1117;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
 tab1, tab2, tab3 = st.tabs(["Aircraft Design", "Performance", "Reports"])
 
 # =====================================================
-# TAB 1 - INPUT + AIRFOIL
+# TAB 1 - DESIGN
 # =====================================================
 with tab1:
-    st.title("✈️ Aircraft Design")
+    st.title("✈️ Aerospace Design Dashboard")
 
-    aircraft_name = st.text_input("Aircraft Name", "My Aircraft")
+    col1, col2 = st.columns(2)
 
-    airfoil = st.selectbox(
-        "Airfoil",
-        ["NACA0012", "NACA2412", "NACA4412", "NACA23012"]
-    )
+    with col1:
+        aircraft_name = st.text_input("Aircraft Name", "My Aircraft")
+        airfoil = st.selectbox("Airfoil", ["NACA0012", "NACA2412", "NACA4412", "NACA23012"])
+        mach = st.number_input("Mach", value=0.3)
+        rho = st.number_input("Density", value=1.225)
 
-    mach = st.number_input("Mach", value=0.3)
-    rho = st.number_input("Density", value=1.225)
-    span = st.number_input("Wing Span", value=10.0)
-    area = st.number_input("Wing Area", value=12.0)
-    alpha = st.number_input("AoA (deg)", value=5.0)
+    with col2:
+        span = st.number_input("Wing Span", value=10.0)
+        area = st.number_input("Wing Area", value=12.0)
+        alpha = st.number_input("AoA (deg)", value=5.0)
 
     velocity = mach * 343
     AR = span**2 / area
 
     CL = 0.1 * alpha
-    CD = 0.02 + (CL**2)/(np.pi * AR * 0.8)
+    CD = 0.02 + (CL**2) / (np.pi * AR * 0.8)
 
     q = 0.5 * rho * velocity**2
     lift = q * area * CL
     drag = q * area * CD
     LD = lift / drag
 
-    st.subheader("Results")
-    st.write(f"CL: {CL:.3f}, CD: {CD:.4f}, L/D: {LD:.2f}")
+    st.subheader("📌 Summary")
+    st.info(f"Aircraft: {aircraft_name} | Airfoil: {airfoil}")
 
+    st.success(f"CL={CL:.3f} | CD={CD:.4f} | L/D={LD:.2f}")
+
+    # ================= AIRFOIL =================
     def airfoil_plot():
         x = np.linspace(0, 1, 200)
 
@@ -85,22 +98,28 @@ with tab1:
         xl = x + yt*np.sin(theta)
         yl = yc - yt*np.cos(theta)
 
-        fig, ax = plt.subplots(figsize=(7,4), dpi=150)
-        ax.plot(xu, yu, label="Upper")
-        ax.plot(xl, yl, label="Lower")
-        ax.plot(x, yc, "--")
-        ax.set_title("Airfoil Shape")
-        ax.grid()
-        ax.legend()
+        fig, ax = plt.subplots(figsize=(5, 3), dpi=150)
+        fig.patch.set_facecolor("#0e1117")
+        ax.set_facecolor("#0e1117")
+
+        ax.plot(xu, yu, color="#00ffcc")
+        ax.plot(xl, yl, color="#00ffcc")
+        ax.fill_between(xu, yu, yl, alpha=0.1, color="#00ffcc")
+
+        ax.set_title("Airfoil Shape", color="white")
+        ax.grid(alpha=0.2)
+        ax.set_aspect("equal")
+        ax.tick_params(colors="white")
+
         return fig
 
     st.pyplot(airfoil_plot())
 
 # =====================================================
-# TAB 2 - PERFORMANCE
+# TAB 2 - PERFORMANCE (COMPACT GRID)
 # =====================================================
 with tab2:
-    st.title("📊 Performance")
+    st.title("📊 Performance Dashboard")
 
     alpha_range = np.arange(-5, 16, 1)
 
@@ -111,48 +130,61 @@ with tab2:
 
     figs = []
 
-    def make_plot(y, title):
-        fig, ax = plt.subplots(figsize=(7,4), dpi=200)
-        ax.plot(alpha_range, y, linewidth=2)
-        ax.set_title(title)
-        ax.grid()
+    def small_plot(y, title, color):
+        fig, ax = plt.subplots(figsize=(4, 2.5), dpi=150)
+        fig.patch.set_facecolor("#0e1117")
+        ax.set_facecolor("#0e1117")
+
+        ax.plot(alpha_range, y, color=color, linewidth=2)
+
+        ax.set_title(title, color="white", fontsize=9)
+        ax.tick_params(colors="white", labelsize=7)
+        ax.grid(alpha=0.2)
+
         return fig
 
-    f1 = make_plot(CL_arr, "CL vs AoA")
-    st.pyplot(f1); figs.append(f1)
+    col1, col2, col3 = st.columns(3)
 
-    f2 = make_plot(CD_arr, "CD vs AoA")
-    st.pyplot(f2); figs.append(f2)
+    with col1:
+        f1 = small_plot(CL_arr, "CL vs AoA", "#00ffcc")
+        st.pyplot(f1); figs.append(f1)
 
-    f3 = make_plot(LD_arr, "L/D vs AoA")
-    st.pyplot(f3); figs.append(f3)
+    with col2:
+        f2 = small_plot(CD_arr, "CD vs AoA", "#ff5555")
+        st.pyplot(f2); figs.append(f2)
 
-    f4, ax4 = plt.subplots(figsize=(7,4), dpi=200)
-    ax4.plot(CD_arr, CL_arr, marker="o")
-    ax4.set_title("Drag Polar")
-    ax4.grid()
-    st.pyplot(f4); figs.append(f4)
+    with col3:
+        f3 = small_plot(LD_arr, "L/D vs AoA", "#00ff00")
+        st.pyplot(f3); figs.append(f3)
 
-    f5 = make_plot(CM_arr, "Cm vs AoA")
-    st.pyplot(f5); figs.append(f5)
+    col4, col5 = st.columns(2)
+
+    with col4:
+        f4 = small_plot(CM_arr, "Cm vs AoA", "#ffaa00")
+        st.pyplot(f4); figs.append(f4)
+
+    with col5:
+        fig, ax = plt.subplots(figsize=(4, 2.5), dpi=150)
+        ax.plot(CD_arr, CL_arr, color="cyan", marker="o", markersize=3)
+        ax.set_title("Drag Polar", fontsize=9)
+        ax.grid(alpha=0.2)
+        st.pyplot(fig); figs.append(fig)
 
 # =====================================================
-# TAB 3 - REPORTS (KILLER EXPORT)
+# TAB 3 - REPORTS (DATA + ALL GRAPHS)
 # =====================================================
 with tab3:
-    st.title("📄 Engineering Report Export")
+    st.title("📄 Engineering Report")
 
     # INPUT DATA
     input_df = pd.DataFrame([{
         "Aircraft": aircraft_name,
+        "Airfoil": airfoil,
         "Mach": mach,
         "Density": rho,
         "Span": span,
         "Area": area,
-        "AoA": alpha,
-        "CL": CL,
-        "CD": CD,
-        "L/D": LD
+        "AoA": alpha
     }])
 
     # OUTPUT DATA
@@ -164,15 +196,25 @@ with tab3:
         "Cm": CM_arr
     })
 
-    st.download_button("Download Input Data",
-                       input_df.to_csv(index=False).encode(),
-                       file_name="input_data.csv")
+    st.subheader("Input Data")
+    st.dataframe(input_df)
 
-    st.download_button("Download Output Data",
-                       output_df.to_csv(index=False).encode(),
-                       file_name="output_data.csv")
+    st.subheader("Output Data")
+    st.dataframe(output_df)
 
-    # ================= PDF =================
+    st.download_button(
+        "Download Input CSV",
+        input_df.to_csv(index=False).encode(),
+        file_name="input_data.csv"
+    )
+
+    st.download_button(
+        "Download Output CSV",
+        output_df.to_csv(index=False).encode(),
+        file_name="output_data.csv"
+    )
+
+    # ================= PDF EXPORT =================
     def make_pdf():
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer)
@@ -182,14 +224,15 @@ with tab3:
 
         pdf.setFont("Helvetica", 10)
         pdf.drawString(50, 780, f"Aircraft: {aircraft_name}")
-        pdf.drawString(50, 765, f"CL: {CL:.3f} CD: {CD:.4f} L/D: {LD:.2f}")
+        pdf.drawString(50, 760, f"Airfoil: {airfoil}")
+        pdf.drawString(50, 740, f"CL: {CL:.3f} CD: {CD:.4f} L/D: {LD:.2f}")
 
         pdf.showPage()
 
         y = 700
 
         for i, fig in enumerate(figs):
-            img = f"g{i}.png"
+            img = f"fig_{i}.png"
             fig.savefig(img, dpi=300, bbox_inches="tight")
 
             pdf.drawImage(img, 40, y, width=520, height=200)
@@ -208,7 +251,7 @@ with tab3:
     pdf = make_pdf()
 
     st.download_button(
-        "Download FULL Engineering PDF (ALL graphs + data)",
+        "Download FULL Engineering Report (All Graphs + Data)",
         pdf,
         file_name="aero_report.pdf"
     )

@@ -49,24 +49,24 @@ with tab1:
 
     AR = span**2 / area
 
-if airfoil == "NACA0012":
-    CL0, CD0 = 0.00, 0.020
+    if airfoil == "NACA0012":
+        CL0, CD0 = 0.00, 0.020
 
-elif airfoil == "NACA2412":
-    CL0, CD0 = 0.20, 0.018
+    elif airfoil == "NACA2412":
+        CL0, CD0 = 0.20, 0.018
 
-elif airfoil == "NACA4412":
-    CL0, CD0 = 0.40, 0.017
+    elif airfoil == "NACA4412":
+        CL0, CD0 = 0.40, 0.017
 
-else:  # NACA23012
-    CL0, CD0 = 0.25, 0.018
+    else:
+        CL0, CD0 = 0.25, 0.018
 
-CL = CL0 + 0.11 * alpha
-CD = CD0 + (CL**2)/(np.pi * AR * 0.85)
+    CL = CL0 + 0.11 * alpha
+    CD = CD0 + (CL**2)/(np.pi * AR * 0.85)
 
-lift = q * area * CL
-drag = q * area * CD
-LD = CL / CD
+    lift = q * area * CL
+    drag = q * area * CD
+    LD = CL / CD
 
     # ================= SUMMARY =================
     st.subheader("📌 Engineering Summary")
@@ -148,7 +148,7 @@ with tab2:
     alpha_range = np.arange(-5, 16, 1)
 
     CL_arr = CL0 + 0.11 * alpha_range
-    CD_arr = 0.02 + (CL_arr**2)/(np.pi*(AR)*0.85)
+    CD_arr = CD0 + (CL_arr**2)/(np.pi*(AR)*0.85)
     LD_arr = CL_arr / CD_arr
     CM_arr = -0.05 * alpha_range
 

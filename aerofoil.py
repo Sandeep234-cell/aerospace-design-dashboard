@@ -76,6 +76,8 @@ Aircraft: {aircraft_name}
 Airfoil: {airfoil}  
 Velocity: {velocity:.2f} m/s  
 Chord: {chord:.3f} m  
+lift = q * area * CL
+drag = q * area * CD
 Reynolds Number: {Re:.2e}  
 Dynamic Pressure: {q:.2f} Pa  
 """)
@@ -201,19 +203,22 @@ with tab2:
 with tab3:
     st.title("📄 Engineering Report")
 
-    input_df = pd.DataFrame([{
-        "Aircraft": aircraft_name,
-        "Airfoil": airfoil,
-        "Mach": mach,
-        "Density": rho,
-        "Span": span,
-        "Area": area,
-        "AoA": alpha,
-        "Velocity": velocity,
-        "Chord": chord,
-        "Reynolds Number": Re,
-        "Dynamic Pressure": q
-    }])
+   input_df = pd.DataFrame([{
+    "Aircraft": aircraft_name,
+    "Airfoil": airfoil,
+    "Mach": mach,
+    "Density": rho,
+    "Span": span,
+    "Area": area,
+    "AoA": alpha,
+    "Velocity": velocity,
+    "Chord": chord,
+    "Reynolds Number": Re,
+    "Dynamic Pressure": q,
+    "Lift (N)": lift,
+    "Drag (N)": drag,
+    "L/D": LD
+}])
 
     output_df = pd.DataFrame({
         "AoA": alpha_range,

@@ -198,27 +198,40 @@ with tab2:
     with c5: st.pyplot(fig5); figs.append(fig5)
 
 # =====================================================
-# TAB 3 - REPORTS (FULL FIXED ENGINEERING REPORT)
+# TAB 3 - REPORTS
 # =====================================================
 with tab3:
     st.title("📄 Engineering Report")
 
-   input_df = pd.DataFrame([{
-    "Aircraft": aircraft_name,
-    "Airfoil": airfoil,
-    "Mach": mach,
-    "Density": rho,
-    "Span": span,
-    "Area": area,
-    "AoA": alpha,
-    "Velocity": velocity,
-    "Chord": chord,
-    "Reynolds Number": Re,
-    "Dynamic Pressure": q,
-    "Lift (N)": lift,
-    "Drag (N)": drag,
-    "L/D": LD
-}])
+    input_df = pd.DataFrame([{
+        "Aircraft": aircraft_name,
+        "Airfoil": airfoil,
+        "Mach": mach,
+        "Density": rho,
+        "Span": span,
+        "Area": area,
+        "AoA": alpha,
+        "Velocity": velocity,
+        "Chord": chord,
+        "Reynolds Number": Re,
+        "Dynamic Pressure": q,
+        "Lift (N)": lift,
+        "Drag (N)": drag,
+        "L/D": LD
+    }])
+
+    Lift_arr = q * area * CL_arr
+    Drag_arr = q * area * CD_arr
+
+    output_df = pd.DataFrame({
+        "AoA": alpha_range,
+        "CL": CL_arr,
+        "CD": CD_arr,
+        "Lift (N)": Lift_arr,
+        "Drag (N)": Drag_arr,
+        "L/D": LD_arr,
+        "Cm": CM_arr
+    })
 
     output_df = pd.DataFrame({
         "AoA": alpha_range,

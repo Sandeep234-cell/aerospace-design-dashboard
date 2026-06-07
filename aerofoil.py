@@ -76,10 +76,10 @@ Aircraft: {aircraft_name}
 Airfoil: {airfoil}  
 Velocity: {velocity:.2f} m/s  
 Chord: {chord:.3f} m  
+Reynolds Number: {Re:.2e}  
+Dynamic Pressure: {q:.2f} Pa 
 lift = q * area * CL
 drag = q * area * CD
-Reynolds Number: {Re:.2e}  
-Dynamic Pressure: {q:.2f} Pa  
 """)
 
     st.success(f"""

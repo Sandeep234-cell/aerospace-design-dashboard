@@ -78,14 +78,14 @@ Velocity: {velocity:.2f} m/s
 Chord: {chord:.3f} m  
 Reynolds Number: {Re:.2e}  
 Dynamic Pressure: {q:.2f} Pa 
+
 Lift: {lift:.2f} N
 
 Drag: {drag:.2f} N
 """)
 
     st.success(f"""
-CL = {CL:.3f} | CD = {CD:.4f} | L/D = {LD:.2f}  
-Lift = {lift:.1f} N | Drag = {drag:.1f} N  
+CL = {CL:.3f} | CD = {CD:.4f} | L/D = {LD:.2f}   
 """)
 
     # ================= AIRFOIL =================
